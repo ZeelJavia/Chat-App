@@ -1,0 +1,50 @@
+<div id="leave-chat-modal" x-data="{ modal_open: false }">
+  <!-- Button to open modal -->
+  <button
+    type="button"
+    @click="modal_open = true"
+    class="text-red-500 hover:text-red-700 font-medium mt-2"
+  >
+    Leave Chat
+  </button>
+
+  <!-- Modal background -->
+  <div
+    x-show="modal_open"
+    x-cloak
+    class="fixed inset-0 bg-black bg-opacity-50 z-50"
+  ></div>
+
+  <!-- Modal content -->
+  <div
+    x-show="modal_open"
+    x-cloak
+    class="fixed inset-0 z-50 flex justify-center items-center"
+  >
+    <div
+      @click.away="modal_open = false"
+      class="bg-white rounded p-6 w-80 max-w-sm"
+    >
+      <h2 class="text-lg font-bold mb-4">Leave this chat?</h2>
+
+      <form
+        method="POST"
+        action="{% url 'chatroom-leave' chat_group.group_name %}"
+      >
+        {% csrf_token %}
+        <div class="flex justify-end gap-2">
+          <button
+            type="button"
+            @click="modal_open = false"
+            class="px-4 py-2 bg-gray-300 rounded"
+          >
+            Cancel
+          </button>
+          <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded">
+            Leave
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

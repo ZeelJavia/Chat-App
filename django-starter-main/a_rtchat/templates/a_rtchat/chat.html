@@ -1,0 +1,105 @@
+{% extends 'layouts/blank.html' %} {% block content %}
+
+<wrapper class="block max-w-2xl mx-auto my-10 px-6">
+  {% if chat_group.groupchat_name %}
+  <div class="flex justify-between">
+  <h2>{{chat_group.groupchat_name}}</h2>
+  {% if user == chat_group.admin %}
+  <a href="{% url 'edit-chatroom' chat_group.group_name %}" >
+    <div class="p-2 bg-gray-200 hover:bg-blue-600 rounded-lg group">
+        <svg class="fill-gray-500 group-hover:fill-white" width="16" height="16" viewBox="0 0 24 24">
+            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+        </svg>
+    </div>
+</a>
+  {% endif %}
+</div>
+  {%endif%}
+  <div
+    id="chat_window"
+    class="h-[45rem] flex flex-col bg-gray-800 rounded-2xl shadow-2xl relative p-1"
+  >
+    <div
+      class="flex justify-center text-emerald-400 bg-gray-800 p-2 sticky top-0 z-10"
+    >
+      {% if other_user %}
+            <div id="online-icon" class="{% if other_user in chat_group.users_online.all %}green-dot{% else %}gray-dot{% endif %} absolute top-2 left-2"></div>
+            <a href="{% url 'profile' other_user.username %}">
+                <div class="flex items-center gap-2 p-4 sticky top-0 z-10">
+                    <img class="w-10 h-10 rounded-full object-cover" src="{{ other_user.profile.avatar }}" />
+                    <div>
+                        <span class="font-bold text-white">{{ other_user.profile.name }}</span> 
+                        <span class="text-sm font-light text-gray-400">@{{ other_user.username }}</span>
+                    </div>
+                </div>
+            </a>
+      {% elif chat_group.groupchat_name %}
+      <ul id="groupchat-members" class="flex gap-4">
+        {% for member in chat_group.members.all %}
+        <li>
+          <a href="#" class="flex flex-col text-gray-400 items-center justify-center w-20 gap-2">
+            <img src="{{member.profile.avatar}}" class="w-14 h-14 rounded-full object-cover" alt="Avatar" />
+            {{member.profile.name|slice:":10"}}
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div id="online-icon"></div>
+      <span id="online-count" class="pr-1"></span>online
+      {% endif %}
+    </div>
+    <div id="chat_container" class="overflow-y-auto grow">
+      <ul id="chat_messages" class="flex flex-col justify-end gap-2 p-4">
+        {% for message in chat_messages reversed %}
+          {% include 'a_rtchat/chat_message.html' with message=message %}
+        {% empty %}
+          <li class="text-gray-400 text-center p-4">No messages yet</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="sticky bottom-0 z-10 p-2 bg-gray-800">
+      <div class="flex items-center rounded-xl px-2 py-2">
+        <form
+            id="chat_message_form"
+            class="w-full"
+            hx-ext="ws"
+            ws-connect="/ws/chatroom/{{chatroom_name}}"
+            ws-send
+            _="on htmx:wsAfterSend reset() me"
+>
+  {% csrf_token %} {{form}}
+</form>
+      </div>
+    </div>
+  </div>
+  {% if chat_group.members.exists %}
+  {% include 'a_rtchat/partials/model_chat_leave.html' %}
+  {% endif %}
+</wrapper>
+
+{% endblock %} {% block javascript %}
+<script>
+  // Add this to your existing JavaScript
+  document.addEventListener('DOMContentLoaded', function() {
+    const chatSocket = new WebSocket(`ws://${window.location.host}/ws/chatroom/{{chatroom_name}}`);
+    
+    chatSocket.onmessage = function(e) {
+      const data = JSON.parse(e.data);
+      
+      // If it's a redirect message, redirect the user
+      if (data.type === 'redirect') {
+        window.location.href = data.url;
+      }
+      
+      // Handle other messages...
+    };
+  });
+  
+  function scrollToBottom() {
+    const container = document.getElementById("chat_container");
+    container.scrollTop = container.scrollHeight;
+  }
+  scrollToBottom();
+</script>
+{% endblock %}
